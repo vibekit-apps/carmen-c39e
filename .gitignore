@@ -23,3 +23,5 @@ openclaw-mcp.json
 .worktrees/
 STATUS.md
 qa-reports/
+
+lib/data/

@@ -1,87 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<!-- viewport-fit=cover is what lets the layout reach under the notch and the
-     home indicator; styles.css then pads it back with env(safe-area-inset-*).
-     The platform only injects a viewport when a page has none, so this one
-     stands and must keep viewport-fit=cover. -->
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Your app</title>
-<link rel="stylesheet" href="/styles.css">
-
-<!-- DO NOT ADD A WEB APP MANIFEST OR APP ICONS HERE.
-     The platform injects the install metadata at the proxy from THIS app's
-     real name, with its own generated icon and colour. It backs off the
-     instant a page declares a manifest link of its own, so anything static
-     here would win that race and give every app the same placeholder
-     identity: every install named "Your app", every home screen icon
-     identical. Shipping nothing is what gets the user their own name.
-     Careful: the detector greps this HTML for a manifest link, so even a
-     commented-out or example one silently disables it. Do not write one.
-     (Running locally there is no install metadata. That is expected; it
-     appears once the app is served on *.vibekit.bot.) -->
-</head>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Carmen</title><link rel="stylesheet" href="/styles.css"></head>
 <body>
-
-<header class="appbar">
-  <h1 id="app-name">Your app</h1>
-  <span class="status"><span class="dot"></span>Live</span>
-</header>
-
+<header class="appbar"><div><p class="eyebrow">Visual intelligence</p><h1>Carmen</h1></div><button class="icon-btn" id="new-case" aria-label="New investigation">+</button></header>
 <main>
-  <!-- One <section class="screen"> per tab. app.js just toggles .active. -->
-  <section class="screen active" id="screen-home">
-    <div class="card">
-      <h2>This is your app</h2>
-      <p>Open the chat with your agent and describe what you want. Every change ships in
-         seconds and shows up right here.</p>
-    </div>
-    <div class="card" id="install-card" hidden>
-      <h2>Add it to your home screen</h2>
-      <p id="install-copy">Install it and it opens full screen with its own icon, like any other app.</p>
-      <button class="btn" id="install-btn" hidden>Install</button>
-    </div>
-    <ul class="list">
-      <li><span>Tabs below are yours</span><span class="meta">rename them</span></li>
-      <li><span>Data persists</span><span class="meta">lib/store.js</span></li>
-      <li><span>Add API routes</span><span class="meta">server.js</span></li>
-    </ul>
-  </section>
-
-  <section class="screen" id="screen-add">
-    <div class="card">
-      <h2>Second screen</h2>
-      <p>Whatever your app's main action is, put it here. Tell your agent and it will
-         rebuild this tab around it.</p>
-    </div>
-  </section>
-
-  <section class="screen" id="screen-you">
-    <div class="card">
-      <h2>Profile</h2>
-      <p>Settings, account, saved items. Ask your agent for sign-in if you need it.</p>
-    </div>
-    <footer>Built with <a href="https://vibekit.bot">VibeKit</a></footer>
-  </section>
+<section class="screen active" id="screen-hub">
+  <div class="hero"><p class="eyebrow">Investigation hub</p><h2>Follow the evidence.</h2><p>Capture what you see, separate it from what you infer, and keep the trail intact.</p><button class="btn" data-go="capture">Capture evidence <span>→</span></button></div>
+  <div class="section-head"><h2>Active investigations</h2><span id="case-count"></span></div><div id="case-list" class="stack"></div>
+</section>
+<section class="screen" id="screen-capture">
+  <div class="section-head"><div><p class="eyebrow">Capture & input</p><h2>Add evidence</h2></div><select id="case-select" aria-label="Investigation"></select></div>
+  <form id="capture-form" class="capture-card">
+    <label>Source type<select id="source-type"><option>Web</option><option>Reddit</option><option>Adult Video</option><option>Other</option></select></label>
+    <label>URL or target<input id="evidence-url" type="url" placeholder="https://…"></label>
+    <label>Source / site / subreddit<input id="source-name" placeholder="e.g. r/… or publication"></label>
+    <label>What should Carmen investigate?<textarea id="evidence-notes" placeholder="Describe what is visible, why it matters, or your question."></textarea></label>
+    <button class="btn" type="submit">Add to investigation</button>
+  </form>
+  <p class="quiet">Capture stores the original source and your notes. Carmen does not open, contact, or act on sources.</p>
+</section>
+<section class="screen" id="screen-analysis">
+ <div class="section-head"><div><p class="eyebrow">Carmen analysis</p><h2>Evidence breakdown</h2></div><select id="analysis-select" aria-label="Evidence"></select></div>
+ <div id="analysis-empty" class="empty">Add evidence to see its structured analysis.</div>
+ <div id="analysis-content" hidden>
+  <div class="evidence-strip" id="analysis-meta"></div>
+  <article class="analysis-block observed"><div class="layer">Known / observed</div><h3>Direct observations</h3><p id="observations"></p><small id="objects"></small></article>
+  <article class="analysis-block inferred"><div class="layer">Inferred / suspected</div><h3>Structural reading</h3><p id="inferences"></p><small id="signature"></small></article>
+  <article class="analysis-block unknown"><div class="layer">Unknown / unanswered</div><h3>What the evidence cannot establish</h3><p id="unknowns"></p></article>
+  <article class="analysis-block"><div class="layer">Evidence map</div><h3>Visual deconstruction</h3><div class="map"><span>Source</span><i></i><span>Visible cues</span><i></i><span>Structural signature</span></div></article>
+ </div>
+</section>
+<section class="screen" id="screen-patterns">
+ <div class="section-head"><div><p class="eyebrow">Pattern comparison</p><h2>Compare evidence</h2></div><button class="text-btn" id="compare-btn">Compare</button></div>
+ <p class="quiet">Select 2–4 items. Recurrence signals consistency, not proof.</p><div id="compare-picker" class="picker"></div>
+ <div id="comparison-result" class="comparison empty">Select at least two evidence items to identify common structure and differences.</div>
+ <div class="section-head minor"><h2>Pattern board</h2></div><div id="pattern-board" class="stack"></div>
+</section>
+<section class="screen" id="screen-leads">
+ <div class="section-head"><div><p class="eyebrow">Research leads</p><h2>Next questions</h2></div><select id="lead-case-select" aria-label="Investigation"></select></div>
+ <div id="lead-list" class="stack"></div>
+</section>
 </main>
-
-<!-- Bottom tab bar: thumb-reachable, which is where phone navigation belongs. -->
 <nav class="tabbar" role="tablist">
-  <button class="tab active" role="tab" data-screen="home" aria-selected="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span>Home</span>
-  </button>
-  <button class="tab" role="tab" data-screen="add" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-    <span>Add</span>
-  </button>
-  <button class="tab" role="tab" data-screen="you" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <span>You</span>
-  </button>
-</nav>
-
-<script src="/app.js"></script>
-</body>
-</html>
+<button class="tab active" data-screen="hub"><span class="tab-icon">⌂</span><span>Hub</span></button><button class="tab" data-screen="capture"><span class="tab-icon">＋</span><span>Capture</span></button><button class="tab" data-screen="analysis"><span class="tab-icon">◉</span><span>Analysis</span></button><button class="tab" data-screen="patterns"><span class="tab-icon">⌘</span><span>Patterns</span></button><button class="tab" data-screen="leads"><span class="tab-icon">↗</span><span>Leads</span></button>
+</nav><div id="toast" role="status"></div><script src="/app.js"></script></body></html>

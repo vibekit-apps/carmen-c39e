@@ -4,6 +4,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const store = require('./lib/store');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -25,8 +26,29 @@ const MIME = {
 //     const item = await readBody(req);
 //     json(res, store.write('items', [...store.read('items'), item]), 201);
 //   },
+const seed = [{ id: 'case-1', title: 'Interface choreography study', question: 'How do repeated visual cues establish sequence and intent?', createdAt: '2026-09-09T05:48:00Z' }];
+function state() {
+  const data = store.read('carmen', null);
+  return data || { investigations: seed, evidence: [], leads: [] };
+}
+function save(data) { return store.write('carmen', data); }
+function id(prefix) { return `${prefix}-${Date.now().toString(36)}`; }
+function analysisFor(item) {
+  const text = `${item.notes || ''} ${item.sourceName || ''}`.trim();
+  return {
+    observations: text ? `Captured source context: “${text}”. The supplied record establishes the source and the investigator’s stated focus.` : 'A source was captured, but no visible-image description was supplied.',
+    objects: `Source type: ${item.sourceType}. Visible components require an image or frame description to be established directly.`,
+    inferences: text ? 'The wording suggests the investigator is testing a relationship between presentation, sequence, or repeated visual cues. This remains a working interpretation.' : 'No structural inference is warranted yet.',
+    signature: 'Structural signature: source context + investigator question. Confidence: low until visual evidence is attached.',
+    unknowns: 'Exact objects, spatial relationships, sequence, and whether the same structure recurs across sources remain unanswered.'
+  };
+}
 const routes = {
   'GET /health': (req, res) => json(res, { status: 'ok', uptime: process.uptime() }),
+  'GET /api/state': (req, res) => json(res, state()),
+  'POST /api/investigations': async (req, res) => { const body = await readBody(req); const data = state(); const item = { id: id('case'), title: body.title || 'Untitled investigation', question: body.question || '', createdAt: new Date().toISOString() }; data.investigations.unshift(item); save(data); json(res, item, 201); },
+  'POST /api/evidence': async (req, res) => { const body = await readBody(req); const data = state(); const duplicate = data.evidence.find((e) => e.investigationId === body.investigationId && e.url && e.url === body.url); if (duplicate) return json(res, { error: 'That URL is already captured in this investigation.', duplicate }, 409); const item = { id: id('evidence'), investigationId: body.investigationId, sourceType: body.sourceType || 'Web', url: body.url || '', sourceName: body.sourceName || '', notes: body.notes || '', createdAt: new Date().toISOString() }; item.analysis = analysisFor(item); data.evidence.unshift(item); data.leads.unshift({ id: id('lead'), investigationId: item.investigationId, question: `What additional visual evidence would test the working reading of this ${item.sourceType} source?`, why: 'The current capture records source context, but not enough direct visual detail to validate a pattern.', evidenceId: item.id, status: 'New' }); save(data); json(res, item, 201); },
+  'PATCH /api/leads': async (req, res) => { const body = await readBody(req); const data = state(); const lead = data.leads.find((l) => l.id === body.id); if (!lead) return json(res, { error: 'Lead not found' }, 404); lead.status = body.status; save(data); json(res, lead); },
 };
 
 function json(res, data, status = 200) {

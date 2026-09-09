@@ -1,68 +1,22 @@
-// Tab switching, the install prompt, and the service worker. That is all.
-// No framework, no build step, no bundle to keep in sync.
-
-// ── Tabs ───────────────────────────────────────────────────────────
+const $ = (s) => document.querySelector(s); let data = { investigations: [], evidence: [], leads: [] };
 const tabs = document.querySelectorAll('.tab');
-const screens = document.querySelectorAll('.screen');
-
-function show(name) {
-  screens.forEach((s) => s.classList.toggle('active', s.id === `screen-${name}`));
-  tabs.forEach((t) => {
-    const on = t.dataset.screen === name;
-    t.classList.toggle('active', on);
-    t.setAttribute('aria-selected', String(on));
-  });
-  // Each tab starts at the top, the way a native tab bar behaves.
-  window.scrollTo(0, 0);
-}
-tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.screen)));
-
-// ── Title ──────────────────────────────────────────────────────────
-// Name the app after its subdomain until the agent gives it a real one, so a
-// fresh build never says "Your app" on a page the user is already sharing.
-const sub = location.hostname.split('.')[0];
-if (sub && sub !== 'localhost' && !/^\d+$/.test(sub)) {
-  const pretty = sub.replace(/-[a-z0-9]{4}$/i, '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  if (pretty) {
-    document.getElementById('app-name').textContent = pretty;
-    document.title = pretty;
-  }
-}
-
-// ── Install ────────────────────────────────────────────────────────
-// Two different worlds. Chrome fires beforeinstallprompt and gives us a real
-// button. iOS Safari has no such event and never will, so the only honest move
-// there is to tell the user where the Share button is. Both are hidden once the
-// app is already installed, since display-mode:standalone means we ARE the
-// installed app and offering to install it again is nonsense.
-const card = document.getElementById('install-card');
-const btn = document.getElementById('install-btn');
-const copy = document.getElementById('install-copy');
-const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-let deferred = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferred = e;
-  if (!installed) { card.hidden = false; btn.hidden = false; }
-});
-
-btn.addEventListener('click', async () => {
-  if (!deferred) return;
-  deferred.prompt();
-  await deferred.userChoice;
-  deferred = null;
-  card.hidden = true;
-});
-
-if (!installed && isIOS) {
-  copy.textContent = 'Tap the Share button, then "Add to Home Screen". It opens full screen with its own icon.';
-  card.hidden = false;
-}
-
-// ── Service worker ─────────────────────────────────────────────────
-// See sw.js: network always wins, the cache is an offline fallback only.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-}
+function show(name){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===`screen-${name}`));tabs.forEach(x=>x.classList.toggle('active',x.dataset.screen===name));window.scrollTo(0,0)}
+tabs.forEach(t=>t.onclick=()=>show(t.dataset.screen));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
+async function api(url, opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});const body=await r.json();if(!r.ok)throw new Error(body.error||'Request failed');return body}
+function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function evidenceFor(id){return data.evidence.filter(e=>e.investigationId===id)}
+function render(){const cases=data.investigations;$('#case-count').textContent=`${cases.length} active`;$('#case-list').innerHTML=cases.map(c=>{const ev=evidenceFor(c.id), sources=new Set(ev.map(e=>e.sourceType)).size;return `<article class="case-card"><div class="case-top"><div><h3>${esc(c.title)}</h3><p>${esc(c.question||'No research question yet.')}</p></div><button class="case-open" data-case="${c.id}">Open</button></div><div class="metrics"><span class="metric">${ev.length} evidence</span><span class="metric">${sources} source types</span><span class="metric">${data.leads.filter(l=>l.investigationId===c.id&&l.status==='New').length} new leads</span></div></article>`}).join('')||'<div class="empty">Create an investigation to begin.</div>';
+$('#case-list').querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{setCase(b.dataset.case);show('capture')});
+const options=cases.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('');['#case-select','#lead-case-select'].forEach(s=>{const el=$(s), old=el.value;el.innerHTML=options;el.value=cases.some(c=>c.id===old)?old:cases[0]?.id||''});renderAnalysisSelect();renderPicker();renderLeads();}
+function setCase(id){$('#case-select').value=id;$('#lead-case-select').value=id;renderAnalysisSelect();renderPicker();renderLeads()}
+function renderAnalysisSelect(){const sel=$('#analysis-select'), ev=evidenceFor($('#case-select').value);sel.innerHTML=ev.map(e=>`<option value="${e.id}">${esc(e.sourceName||e.url||e.sourceType)} · ${e.sourceType}</option>`).join('');sel.onchange=renderAnalysis;renderAnalysis()}
+function renderAnalysis(){const e=data.evidence.find(x=>x.id===$('#analysis-select').value), empty=$('#analysis-empty'), content=$('#analysis-content');empty.hidden=!!e;content.hidden=!e;if(!e)return;$('#analysis-meta').innerHTML=`<span class="tag">${esc(e.sourceType)}</span><span class="tag">Raw evidence</span><span class="tag">Low confidence</span>`;$('#observations').textContent=e.analysis.observations;$('#objects').textContent=e.analysis.objects;$('#inferences').textContent=e.analysis.inferences;$('#signature').textContent=e.analysis.signature;$('#unknowns').textContent=e.analysis.unknowns}
+function renderPicker(){const ev=evidenceFor($('#case-select').value);$('#compare-picker').innerHTML=ev.map(e=>`<label class="pick"><input type="checkbox" value="${e.id}"><span><b>${esc(e.sourceName||e.url||'Untitled capture')}</b><br><small>${esc(e.sourceType)} · ${esc(e.notes||'No notes')}</small></span></label>`).join('')||'<div class="empty">Add evidence to enable comparison.</div>';$('#comparison-result').className='comparison empty';$('#comparison-result').textContent='Select at least two evidence items to identify common structure and differences.';renderPatterns(ev)}
+function renderPatterns(ev){const count=ev.length;$('#pattern-board').innerHTML=count?`<article class="pattern-card"><div class="lead-meta"><span class="tag">${count>2?'Recurring':'Emerging'}</span><span class="metric">Low strength</span></div><h3>Source-context structural study</h3><p>Supporting evidence: ${count} capture${count===1?'':'s'} across ${new Set(ev.map(e=>e.sourceType)).size} source type${new Set(ev.map(e=>e.sourceType)).size===1?'':'s'}. Repetition is a consistency signal, not proof.</p></article>`:'<div class="empty">Patterns appear after evidence is captured.</div>'}
+$('#compare-btn').onclick=()=>{const selected=[...document.querySelectorAll('#compare-picker input:checked')].map(x=>data.evidence.find(e=>e.id===x.value));if(selected.length<2||selected.length>4)return toast('Choose 2–4 evidence items.');const sources=[...new Set(selected.map(e=>e.sourceType))];$('#comparison-result').className='comparison';$('#comparison-result').innerHTML=`<h3>Candidate comparison</h3><p><b>Common:</b> All selected items were captured to investigate visual structure and context.</p><p><b>Difference:</b> They span ${sources.join(', ')} source types and retain distinct source notes.</p><p><b>Unanswered:</b> Attach or describe the actual frames to test whether visual relationships repeat. <span class="tag">Confidence: low</span></p>`};
+function renderLeads(){const id=$('#lead-case-select').value;$('#lead-list').innerHTML=data.leads.filter(l=>l.investigationId===id).map(l=>`<article class="lead-card"><div class="lead-meta"><span class="tag">Research lead</span><select class="status-select" data-lead="${l.id}"><option ${l.status==='New'?'selected':''}>New</option><option ${l.status==='Reviewed'?'selected':''}>Reviewed</option><option ${l.status==='Dismissed'?'selected':''}>Dismissed</option></select></div><h3>${esc(l.question)}</h3><p>${esc(l.why)}</p></article>`).join('')||'<div class="empty">Carmen will create leads when evidence exposes a gap.</div>';document.querySelectorAll('[data-lead]').forEach(s=>s.onchange=async()=>{await api('/api/leads',{method:'PATCH',body:JSON.stringify({id:s.dataset.lead,status:s.value})});await load();toast('Lead updated.')})}
+$('#lead-case-select').onchange=renderLeads;$('#case-select').onchange=()=>{renderAnalysisSelect();renderPicker();renderLeads()};
+$('#capture-form').onsubmit=async(e)=>{e.preventDefault();try{await api('/api/evidence',{method:'POST',body:JSON.stringify({investigationId:$('#case-select').value,sourceType:$('#source-type').value,url:$('#evidence-url').value.trim(),sourceName:$('#source-name').value.trim(),notes:$('#evidence-notes').value.trim()})});e.target.reset();await load();show('analysis');toast('Evidence captured and analyzed.')}catch(err){toast(err.message)}};
+$('#new-case').onclick=async()=>{const title=prompt('Investigation title');if(!title)return;const question=prompt('Research question')||'';await api('/api/investigations',{method:'POST',body:JSON.stringify({title,question})});await load();toast('Investigation created.')};
+async function load(){data=await api('/api/state');render()}load().catch(()=>toast('Could not load Carmen data.'));
