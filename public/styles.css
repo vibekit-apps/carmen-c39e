@@ -1,0 +1,89 @@
+/* Design system. Edit these tokens and the whole app follows —
+   change --accent once rather than hunting hex codes through the markup. */
+:root {
+  --bg: #0a0a0f;
+  --fg: #ffffff;
+  --mute: #9ca3af;
+  --card: #13131a;
+  --border: #27272f;
+  --accent: #a78bfa;
+  --radius: 14px;
+  /* Real height of the tab bar, used to pad the scroll area so the last row
+     is never trapped underneath it. */
+  --tabbar: calc(58px + env(safe-area-inset-bottom));
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh; /* dvh survives the mobile URL bar collapsing */
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* No pull-to-refresh bounce past the ends: the giveaway that a PWA is a
+     web page wearing a costume. */
+  overscroll-behavior-y: none;
+}
+
+/* ── App bar ─────────────────────────────────────────────────────── */
+.appbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: .75rem;
+  padding: calc(env(safe-area-inset-top) + .875rem) 1.25rem .875rem;
+  background: rgba(10, 10, 15, .82);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.appbar h1 { font-size: 1.125rem; font-weight: 650; letter-spacing: -.02em; word-break: break-word; }
+.status { display: inline-flex; align-items: center; gap: .375rem; margin-left: auto; flex: none; padding: .25rem .625rem; background: var(--card); border: 1px solid var(--border); border-radius: 999px; font-size: .6875rem; color: var(--mute); }
+.status .dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; }
+
+/* ── Screens ─────────────────────────────────────────────────────── */
+main { padding: 1rem 1.25rem calc(var(--tabbar) + 1.5rem); }
+.screen { display: none; }
+.screen.active { display: block; animation: rise .18s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.card { padding: 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .875rem; }
+.card h2 { font-size: 1rem; font-weight: 600; letter-spacing: -.01em; margin-bottom: .375rem; }
+.card p { font-size: .875rem; color: var(--mute); line-height: 1.55; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin-top: .875rem; padding: 0 1.25rem; background: var(--accent); color: #0a0a0f; border: 0; border-radius: 10px; font-size: .9375rem; font-weight: 600; font-family: inherit; cursor: pointer; }
+.btn:active { transform: scale(.98); }
+
+.list { list-style: none; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .875rem 1.25rem; font-size: .875rem; border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: 0; }
+.list .meta { color: var(--mute); font-size: .75rem; flex: none; }
+
+footer { margin-top: 1.5rem; text-align: center; font-size: .75rem; color: var(--mute); }
+footer a { color: var(--mute); }
+
+/* ── Bottom tab bar ──────────────────────────────────────────────── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(10, 10, 15, .88);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-top: 1px solid var(--border);
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 58px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--mute); font-family: inherit; font-size: .625rem; font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab svg { width: 22px; height: 22px; }
+.tab.active { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.active { animation: none; }
+}

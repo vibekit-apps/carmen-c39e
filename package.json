@@ -1,0 +1,9 @@
+{
+  "name": "mobile-starter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-dependency installable phone app: PWA shell + tab bar + JSON API + durable storage.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
