@@ -36,10 +36,11 @@ function save(data) { return store.write('carmen', data); }
 function id(prefix) { return `${prefix}-${Date.now().toString(36)}`; }
 function publicSearch(query) {
   return new Promise((resolve) => {
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&udm=14`;
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 Carmen research assistant' } }, (res) => {
       let raw = ''; res.on('data', c => raw += c); res.on('end', () => {
-        const results = [...raw.matchAll(/<a href="(https?:\/\/[^"&]+)[^"]*"[^>]*><h3[^>]*>([\s\S]*?)<\/h3>/g)].slice(0, 6).map((m) => ({ url: m[1], title: m[2].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&'), source: new URL(m[1]).hostname, description: `Public web result matching “${query}”. Review and confirm before investigating.` }));
+        const clean = (s) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim();
+        const results = [...raw.matchAll(/<a[^>]+class="result__a"[^>]+href="([^" ]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g)].slice(0, 6).map((m) => { const url = m[1]; return { url, title: clean(m[2]), source: new URL(url).hostname, description: clean(m[3]) || `Public web result matching “${query}”. Review and confirm before investigating.` }; });
         resolve(results);
       });
     }).on('error', () => resolve([]));
