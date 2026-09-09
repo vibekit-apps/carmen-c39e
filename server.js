@@ -41,7 +41,8 @@ function publicSearch(query) {
       let raw = ''; res.on('data', c => raw += c); res.on('end', () => {
         const clean = (s) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim();
         const results = [...raw.matchAll(/<a[^>]+class="result__a"[^>]+href="([^" ]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g)].slice(0, 6).map((m) => { const url = m[1]; return { url, title: clean(m[2]), source: new URL(url).hostname, description: clean(m[3]) || `Public web result matching “${query}”. Review and confirm before investigating.` }; });
-        resolve(results);
+        if (results.length) return resolve(results);
+        https.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`, { headers: { 'User-Agent': 'Carmen research assistant' } }, (fallback) => { let body = ''; fallback.on('data', c => body += c); fallback.on('end', () => { try { const item = JSON.parse(body); resolve(item.AbstractURL ? [{ url: item.AbstractURL, title: item.Heading || query, source: new URL(item.AbstractURL).hostname, description: item.AbstractText || `Public reference result matching “${query}”.` }] : []); } catch { resolve([]); } }); }).on('error', () => resolve([]));
       });
     }).on('error', () => resolve([]));
   });
