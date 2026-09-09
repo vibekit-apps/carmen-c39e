@@ -1,45 +1,9 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Carmen</title><link rel="stylesheet" href="/styles.css"></head>
-<body>
-<header class="appbar"><div><p class="eyebrow">Visual intelligence</p><h1>Carmen</h1></div><button class="icon-btn" id="new-case" aria-label="New investigation">+</button></header>
-<main>
-<section class="screen active" id="screen-hub">
-  <div class="hero"><p class="eyebrow">Investigation hub</p><h2>Follow the evidence.</h2><p>Capture what you see, separate it from what you infer, and keep the trail intact.</p><button class="btn" data-go="capture">Capture evidence <span>→</span></button></div>
-  <div class="section-head"><h2>Active investigations</h2><span id="case-count"></span></div><div id="case-list" class="stack"></div>
-</section>
-<section class="screen" id="screen-capture">
-  <div class="section-head"><div><p class="eyebrow">Capture & input</p><h2>Add evidence</h2></div><select id="case-select" aria-label="Investigation"></select></div>
-  <form id="capture-form" class="capture-card">
-    <label>Source type<select id="source-type"><option>Web</option><option>Reddit</option><option>Adult Video</option><option>Other</option></select></label>
-    <label>URL or target<input id="evidence-url" type="url" placeholder="https://…"></label>
-    <label>Source / site / subreddit<input id="source-name" placeholder="e.g. r/… or publication"></label>
-    <label>What should Carmen investigate?<textarea id="evidence-notes" placeholder="Describe what is visible, why it matters, or your question."></textarea></label>
-    <button class="btn" type="submit">Add to investigation</button>
-  </form>
-  <p class="quiet">Capture stores the original source and your notes. Carmen does not open, contact, or act on sources.</p>
-</section>
-<section class="screen" id="screen-analysis">
- <div class="section-head"><div><p class="eyebrow">Carmen analysis</p><h2>Evidence breakdown</h2></div><select id="analysis-select" aria-label="Evidence"></select></div>
- <div id="analysis-empty" class="empty">Add evidence to see its structured analysis.</div>
- <div id="analysis-content" hidden>
-  <div class="evidence-strip" id="analysis-meta"></div>
-  <article class="analysis-block observed"><div class="layer">Known / observed</div><h3>Direct observations</h3><p id="observations"></p><small id="objects"></small></article>
-  <article class="analysis-block inferred"><div class="layer">Inferred / suspected</div><h3>Structural reading</h3><p id="inferences"></p><small id="signature"></small></article>
-  <article class="analysis-block unknown"><div class="layer">Unknown / unanswered</div><h3>What the evidence cannot establish</h3><p id="unknowns"></p></article>
-  <article class="analysis-block"><div class="layer">Evidence map</div><h3>Visual deconstruction</h3><div class="map"><span>Source</span><i></i><span>Visible cues</span><i></i><span>Structural signature</span></div></article>
- </div>
-</section>
-<section class="screen" id="screen-patterns">
- <div class="section-head"><div><p class="eyebrow">Pattern comparison</p><h2>Compare evidence</h2></div><button class="text-btn" id="compare-btn">Compare</button></div>
- <p class="quiet">Select 2–4 items. Recurrence signals consistency, not proof.</p><div id="compare-picker" class="picker"></div>
- <div id="comparison-result" class="comparison empty">Select at least two evidence items to identify common structure and differences.</div>
- <div class="section-head minor"><h2>Pattern board</h2></div><div id="pattern-board" class="stack"></div>
-</section>
-<section class="screen" id="screen-leads">
- <div class="section-head"><div><p class="eyebrow">Research leads</p><h2>Next questions</h2></div><select id="lead-case-select" aria-label="Investigation"></select></div>
- <div id="lead-list" class="stack"></div>
-</section>
-</main>
-<nav class="tabbar" role="tablist">
-<button class="tab active" data-screen="hub"><span class="tab-icon">⌂</span><span>Hub</span></button><button class="tab" data-screen="capture"><span class="tab-icon">＋</span><span>Capture</span></button><button class="tab" data-screen="analysis"><span class="tab-icon">◉</span><span>Analysis</span></button><button class="tab" data-screen="patterns"><span class="tab-icon">⌘</span><span>Patterns</span></button><button class="tab" data-screen="leads"><span class="tab-icon">↗</span><span>Leads</span></button>
-</nav><div id="toast" role="status"></div><script src="/app.js"></script></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Carmen</title><link rel="stylesheet" href="/styles.css"></head><body>
+<header class="appbar"><div><p class="eyebrow">Visual intelligence</p><h1>Carmen</h1></div><button class="icon-btn" id="new-case" aria-label="New investigation">+</button></header><main>
+<section class="screen active" id="screen-hub"><div class="intro"><p class="eyebrow">Start an investigation</p><h2>What are you researching?</h2><form id="research-form" class="research-box"><input id="research-query" aria-label="What are you researching?" placeholder="frogtie, Dream Morgan, a website…"><button aria-label="Start research" type="submit">→</button></form><p>Search terms become a research question — nothing enters your evidence archive until you choose it.</p></div><div id="discovery" hidden></div><div class="quick-actions"><button data-go="capture"><b>＋</b><span>Add source</span><small>Paste a link</small></button><button id="quick-visual"><b>◉</b><span>Add screenshot</span><small>Image or camera</small></button></div><div class="section-head"><h2>Active investigations</h2><span id="case-count"></span></div><div id="case-list" class="stack"></div></section>
+<section class="screen" id="screen-capture"><div class="section-head"><div><p class="eyebrow">Capture</p><h2>Give it to Carmen</h2></div><select id="case-select" aria-label="Investigation"></select></div><div class="capture-switch"><button class="mode active" data-mode="source">Paste link</button><button class="mode" data-mode="visual">Add screenshot / image</button></div>
+<form id="capture-form" class="capture-card"><div id="source-fields"><label>Paste a source link<input id="evidence-url" type="url" inputmode="url" placeholder="https://…"></label><div id="detected" class="detect">Paste a link and Carmen will recognize the source.</div><label class="optional">A note for Carmen <input id="evidence-notes" placeholder="What caught your attention?"></label></div><div id="visual-fields" hidden><label class="visual-drop"><input id="visual-file" type="file" accept="image/*" capture="environment"><span class="visual-icon">◉</span><b>Add screenshot or image</b><small>Choose from Photos, Files, or use your camera.</small></label><div id="image-preview" hidden></div><label class="optional">What should Carmen examine? <input id="visual-notes" placeholder="Optional context"></label></div><button class="btn" type="submit">Add to investigation <span>→</span></button></form><p class="quiet">Links are source evidence. Visual analysis begins when Carmen has an image, screenshot, or frame.</p></section>
+<section class="screen" id="screen-analysis"><div class="section-head"><div><p class="eyebrow">Analysis</p><h2>What Carmen sees</h2></div><select id="analysis-select" aria-label="Evidence"></select></div><div id="analysis-empty" class="empty">Add a screenshot, image, or frame to begin visual analysis.</div><div id="analysis-content" hidden><div class="evidence-strip" id="analysis-meta"></div><div id="analysis-image"></div><article class="analysis-block observed"><div class="layer">Known / observed</div><h3>Direct visual observations</h3><p id="observations"></p><small id="objects"></small></article><article class="analysis-block inferred"><div class="layer">Inferred / suspected</div><h3>Structural reading</h3><p id="inferences"></p><small id="signature"></small></article><article class="analysis-block unknown"><div class="layer">Unknown / unanswered</div><h3>What this cannot establish</h3><p id="unknowns"></p></article><button class="why" id="why-btn">Show me why</button><div id="why-content" class="why-content" hidden></div></div></section>
+<section class="screen" id="screen-patterns"><div class="section-head"><div><p class="eyebrow">Compare</p><h2>Find what repeats</h2></div><button class="text-btn" id="compare-btn">Compare</button></div><p class="quiet">Select 2–4 items. Recurrence is a consistency signal, not proof.</p><div id="compare-picker" class="picker"></div><div id="comparison-result" class="comparison empty">Select two or more evidence items.</div><div class="section-head minor"><h2>Pattern board</h2></div><div id="pattern-board" class="stack"></div></section>
+<section class="screen" id="screen-leads"><div class="section-head"><div><p class="eyebrow">Research leads</p><h2>What to investigate next</h2></div><select id="lead-case-select" aria-label="Investigation"></select></div><div id="lead-list" class="stack"></div></section></main>
+<nav class="tabbar" role="tablist"><button class="tab active" data-screen="hub"><span>⌂</span>Hub</button><button class="tab" data-screen="capture"><span>＋</span>Capture</button><button class="tab" data-screen="analysis"><span>◉</span>Analysis</button><button class="tab" data-screen="patterns"><span>⌘</span>Patterns</button><button class="tab" data-screen="leads"><span>↗</span>Leads</button></nav><div id="toast" role="status"></div><script src="/app.js"></script></body></html>

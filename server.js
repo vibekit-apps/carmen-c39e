@@ -2,6 +2,7 @@
 // `routes` table below. No npm install needed, so the first build is fast.
 // Add express later if you actually need it.
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const store = require('./lib/store');
@@ -33,21 +34,34 @@ function state() {
 }
 function save(data) { return store.write('carmen', data); }
 function id(prefix) { return `${prefix}-${Date.now().toString(36)}`; }
+function publicSearch(query) {
+  return new Promise((resolve) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&udm=14`;
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 Carmen research assistant' } }, (res) => {
+      let raw = ''; res.on('data', c => raw += c); res.on('end', () => {
+        const results = [...raw.matchAll(/<a href="(https?:\/\/[^"&]+)[^"]*"[^>]*><h3[^>]*>([\s\S]*?)<\/h3>/g)].slice(0, 6).map((m) => ({ url: m[1], title: m[2].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&'), source: new URL(m[1]).hostname, description: `Public web result matching “${query}”. Review and confirm before investigating.` }));
+        resolve(results);
+      });
+    }).on('error', () => resolve([]));
+  });
+}
 function analysisFor(item) {
   const text = `${item.notes || ''} ${item.sourceName || ''}`.trim();
+  const visual = Boolean(item.image);
   return {
-    observations: text ? `Captured source context: “${text}”. The supplied record establishes the source and the investigator’s stated focus.` : 'A source was captured, but no visible-image description was supplied.',
-    objects: `Source type: ${item.sourceType}. Visible components require an image or frame description to be established directly.`,
-    inferences: text ? 'The wording suggests the investigator is testing a relationship between presentation, sequence, or repeated visual cues. This remains a working interpretation.' : 'No structural inference is warranted yet.',
-    signature: 'Structural signature: source context + investigator question. Confidence: low until visual evidence is attached.',
-    unknowns: 'Exact objects, spatial relationships, sequence, and whether the same structure recurs across sources remain unanswered.'
+    observations: visual ? 'A user-provided visual asset is attached. Carmen preserves it as raw evidence; automated image recognition is not claimed here.' : (text ? `Captured source context: “${text}”. This establishes the source and investigator’s focus, not visual facts.` : 'A source was captured, but no visual asset or image description was supplied.'),
+    objects: visual ? `Visual evidence is available. Source type: ${item.sourceType}.` : `Source type: ${item.sourceType}. Visual evidence is still required to establish visible components.`,
+    inferences: text ? 'The supplied context suggests a relationship worth testing. This is a working interpretation, not an established fact.' : 'No structural inference is warranted yet.',
+    signature: visual ? 'Structural signature: pending visual interpretation. Confidence: low.' : 'Structural signature: source context only. Confidence: low.',
+    unknowns: 'Exact object identities, spatial relationships, sequence, and recurrence across sources remain unanswered.'
   };
 }
 const routes = {
   'GET /health': (req, res) => json(res, { status: 'ok', uptime: process.uptime() }),
   'GET /api/state': (req, res) => json(res, state()),
+  'GET /api/search': async (req, res) => { const query = new URL(req.url, 'http://local').searchParams.get('q') || ''; if (!query.trim()) return json(res, { results: [] }); const results = await publicSearch(query.trim()); json(res, { query, results, provider: 'Public web search' }); },
   'POST /api/investigations': async (req, res) => { const body = await readBody(req); const data = state(); const item = { id: id('case'), title: body.title || 'Untitled investigation', question: body.question || '', createdAt: new Date().toISOString() }; data.investigations.unshift(item); save(data); json(res, item, 201); },
-  'POST /api/evidence': async (req, res) => { const body = await readBody(req); const data = state(); const duplicate = data.evidence.find((e) => e.investigationId === body.investigationId && e.url && e.url === body.url); if (duplicate) return json(res, { error: 'That URL is already captured in this investigation.', duplicate }, 409); const item = { id: id('evidence'), investigationId: body.investigationId, sourceType: body.sourceType || 'Web', url: body.url || '', sourceName: body.sourceName || '', notes: body.notes || '', createdAt: new Date().toISOString() }; item.analysis = analysisFor(item); data.evidence.unshift(item); data.leads.unshift({ id: id('lead'), investigationId: item.investigationId, question: `What additional visual evidence would test the working reading of this ${item.sourceType} source?`, why: 'The current capture records source context, but not enough direct visual detail to validate a pattern.', evidenceId: item.id, status: 'New' }); save(data); json(res, item, 201); },
+  'POST /api/evidence': async (req, res) => { const body = await readBody(req); const data = state(); const duplicate = data.evidence.find((e) => e.investigationId === body.investigationId && e.url && e.url === body.url); if (duplicate) return json(res, { error: 'That URL is already captured in this investigation.', duplicate }, 409); const item = { id: id('evidence'), investigationId: body.investigationId, sourceType: body.sourceType || 'Web', url: body.url || '', sourceName: body.sourceName || '', notes: body.notes || '', image: body.image || '', createdAt: new Date().toISOString() }; item.analysis = analysisFor(item); data.evidence.unshift(item); data.leads.unshift({ id: id('lead'), investigationId: item.investigationId, question: `What additional visual evidence would test the working reading of this ${item.sourceType} source?`, why: 'The current capture records source context, but not enough direct visual detail to validate a pattern.', evidenceId: item.id, status: 'New' }); save(data); json(res, item, 201); },
   'PATCH /api/leads': async (req, res) => { const body = await readBody(req); const data = state(); const lead = data.leads.find((l) => l.id === body.id); if (!lead) return json(res, { error: 'Lead not found' }, 404); lead.status = body.status; save(data); json(res, lead); },
 };
 
@@ -67,7 +81,7 @@ function readBody(req) {
     req.on('data', (chunk) => {
       raw += chunk;
       // Cap the body so one bad request can't exhaust memory.
-      if (raw.length > 1e6) { req.destroy(); reject(new Error('Body too large')); }
+      if (raw.length > 8e6) { req.destroy(); reject(new Error('Body too large')); }
     });
     req.on('end', () => {
       try { resolve(raw ? JSON.parse(raw) : {}); }
